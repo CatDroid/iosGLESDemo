@@ -15,6 +15,10 @@
 		B07D062726FB6F6D00FC94B8 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B07D062526FB6F6D00FC94B8 /* LaunchScreen.storyboard */; };
 		B07D062A26FB6F6D00FC94B8 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = B07D062926FB6F6D00FC94B8 /* main.m */; };
 		B07D063426FB6FB500FC94B8 /* MyGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = B07D063326FB6FB500FC94B8 /* MyGLView.m */; };
+		B0A2B4F026FDC47F00CC5594 /* frag.glsl in Resources */ = {isa = PBXBuildFile; fileRef = B0A2B4EE26FDC47F00CC5594 /* frag.glsl */; };
+		B0A2B4F126FDC47F00CC5594 /* vert.glsl in Resources */ = {isa = PBXBuildFile; fileRef = B0A2B4EF26FDC47F00CC5594 /* vert.glsl */; };
+		B0A2B4F526FDC5FD00CC5594 /* ViewDelegateRender.m in Sources */ = {isa = PBXBuildFile; fileRef = B0A2B4F426FDC5FD00CC5594 /* ViewDelegateRender.m */; };
+		B0A2B4F926FDC9D000CC5594 /* GLESUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = B0A2B4F726FDC9D000CC5594 /* GLESUtils.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +36,12 @@
 		B07D062926FB6F6D00FC94B8 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		B07D063226FB6FB500FC94B8 /* MyGLView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MyGLView.h; sourceTree = "<group>"; };
 		B07D063326FB6FB500FC94B8 /* MyGLView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MyGLView.m; sourceTree = "<group>"; };
+		B0A2B4EE26FDC47F00CC5594 /* frag.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = frag.glsl; sourceTree = "<group>"; };
+		B0A2B4EF26FDC47F00CC5594 /* vert.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = vert.glsl; sourceTree = "<group>"; };
+		B0A2B4F326FDC5FD00CC5594 /* ViewDelegateRender.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewDelegateRender.h; sourceTree = "<group>"; };
+		B0A2B4F426FDC5FD00CC5594 /* ViewDelegateRender.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewDelegateRender.m; sourceTree = "<group>"; };
+		B0A2B4F726FDC9D000CC5594 /* GLESUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GLESUtils.m; sourceTree = "<group>"; };
+		B0A2B4F826FDC9D000CC5594 /* GLESUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLESUtils.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +74,7 @@
 		B07D061626FB6F6C00FC94B8 /* MyEAGLContext */ = {
 			isa = PBXGroup;
 			children = (
+				B0A2B4E826FDC38500CC5594 /* shader */,
 				B07D063126FB6F8900FC94B8 /* gles */,
 				B07D061726FB6F6C00FC94B8 /* AppDelegate.h */,
 				B07D061826FB6F6C00FC94B8 /* AppDelegate.m */,
@@ -83,10 +94,23 @@
 		B07D063126FB6F8900FC94B8 /* gles */ = {
 			isa = PBXGroup;
 			children = (
+				B0A2B4F826FDC9D000CC5594 /* GLESUtils.h */,
+				B0A2B4F726FDC9D000CC5594 /* GLESUtils.m */,
 				B07D063226FB6FB500FC94B8 /* MyGLView.h */,
 				B07D063326FB6FB500FC94B8 /* MyGLView.m */,
+				B0A2B4F326FDC5FD00CC5594 /* ViewDelegateRender.h */,
+				B0A2B4F426FDC5FD00CC5594 /* ViewDelegateRender.m */,
 			);
 			path = gles;
+			sourceTree = "<group>";
+		};
+		B0A2B4E826FDC38500CC5594 /* shader */ = {
+			isa = PBXGroup;
+			children = (
+				B0A2B4EE26FDC47F00CC5594 /* frag.glsl */,
+				B0A2B4EF26FDC47F00CC5594 /* vert.glsl */,
+			);
+			path = shader;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -146,7 +170,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				B07D062726FB6F6D00FC94B8 /* LaunchScreen.storyboard in Resources */,
+				B0A2B4F026FDC47F00CC5594 /* frag.glsl in Resources */,
 				B07D062426FB6F6D00FC94B8 /* Assets.xcassets in Resources */,
+				B0A2B4F126FDC47F00CC5594 /* vert.glsl in Resources */,
 				B07D062226FB6F6C00FC94B8 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -159,10 +185,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				B07D061F26FB6F6C00FC94B8 /* ViewController.m in Sources */,
+				B0A2B4F926FDC9D000CC5594 /* GLESUtils.m in Sources */,
 				B07D061926FB6F6C00FC94B8 /* AppDelegate.m in Sources */,
 				B07D062A26FB6F6D00FC94B8 /* main.m in Sources */,
 				B07D061C26FB6F6C00FC94B8 /* SceneDelegate.m in Sources */,
 				B07D063426FB6FB500FC94B8 /* MyGLView.m in Sources */,
+				B0A2B4F526FDC5FD00CC5594 /* ViewDelegateRender.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

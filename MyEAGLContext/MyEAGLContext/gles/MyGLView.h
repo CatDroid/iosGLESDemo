@@ -10,21 +10,24 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@protocol GLViewDelegate <NSObject>
-
-@end
+@protocol GLViewDelegate ;
 
 @interface MyGLView : UIView
-
-//-(instancetype)init NS_UNAVAILABLE;
-
--(instancetype)init; // ViewContorller 不调用UIView的 init 或者 initWithFrame 而是 initWithCoder!
--(instancetype)initWithFrame:(CGRect)frame NS_DESIGNATED_INITIALIZER;
--(instancetype)initWithCoder:(NSCoder *)coder;
 
 
 @property (strong,atomic) EAGLContext* context ;
 @property (weak,atomic,nullable) id<GLViewDelegate> delegate ;
+
+
+-(instancetype)init; // ViewContorller 不调用UIView的 init 或者 initWithFrame 而是 initWithCoder!
+-(instancetype)initWithFrame:(CGRect)frame;
+-(instancetype)initWithCoder:(NSCoder *)coder;
+
+
+// 测试metal、openg分配纹理内存占用
+-(void) generateTexture;
+-(void) deleteTexture;
+
 
 @end
 
@@ -33,6 +36,8 @@ NS_ASSUME_NONNULL_BEGIN
 // Metal's Delegate
 //-(void) OnDrawableSizeChange:(CGSize)size WithView:(MyGLView*) view;
 //-(void) OnDrawFrame:(CAMetalLayer*) layer WithView:(MyGLView*) view;
+
+-(void) setTextureForTest:(GLuint) _tex ;
 
 // GLKit's Delegate
 -(void) glkView:(MyGLView*)view drawInRect:(CGRect) rect ;

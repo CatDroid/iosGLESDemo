@@ -24,6 +24,10 @@
 	GLuint _frameBuffer;
 	CGSize _rboSize ;
 	CGRect _drawRect;
+	
+	// 纹理池
+	NSMutableArray<NSNumber*>* _texturePool;
+	GLuint _textureOrder ;
 
 }
 
@@ -36,8 +40,8 @@
 #pragma mark 构造函数
 -(instancetype)init
 {
-	CGRect screenBounds = [[UIScreen mainScreen] bounds];
-	self = [self initWithFrame:screenBounds];
+	self = [super init];
+	[self _setup];
 	return self ;
 }
 
@@ -47,7 +51,7 @@
 	self = [super initWithFrame:frame];
 	if (self)
 	{
-		
+		[self _setup];
 	}
 	else
 	{
@@ -58,28 +62,35 @@
 
 -(instancetype)initWithCoder:(NSCoder *)coder
 {
-	self = [self init];
+	self = [super initWithCoder:coder]; // 如果不调用这个 storyboard的内容不会显示 
+	[self _setup];
 	return self;
+}
+
+-(void) _setup
+{
+	_texturePool = [NSMutableArray new];
 }
 
 -(void) _setupLayer
 {
 	_eaglLayer = (CAEAGLLayer*) self.layer;
-	
+
 	// CALayer 默认是透明的，必须将它设为”不透明“ 才能让其可见
 	_eaglLayer.opaque = YES ;
-	
+	//_eaglLayer.backgroundColor = CGColorCreateGenericRGB(1.0, 1.0, 0.0, 1.0); // 这个控制了什么都不处理时候layer的颜色
+
 	// 只有两种 kEAGLColorFormatRGB565  kEAGLColorFormatRGBA8
-	
+
 	// 设置描绘属性，在这里设置”不维持渲染内容“以及颜色格式为 ”RGBA8“ ?? BGRA8 ??
 	_eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:
 									 @(NO), kEAGLDrawablePropertyRetainedBacking,
 									 kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat,
 									 nil];
-	
+
 	// 默认是 1.0. 如果layer attach到view上 view会修改这个适合当前屏幕
 	_eaglLayer.contentsScale = [UIScreen mainScreen].nativeScale;
-	
+
 	NSLog(@"layer size is layer'bound(%f,%f) frame(%f,%f)",
 		  _eaglLayer.bounds.size.width, _eaglLayer.bounds.size.height,
 		  _eaglLayer.frame.size.width, _eaglLayer.frame.size.height);
@@ -88,7 +99,7 @@
 - (void) _setupContext
 {
 	EAGLRenderingAPI api = kEAGLRenderingAPIOpenGLES3; // gles 3.0
-	//_context = [[EAGLContext alloc] initWithAPI:(EAGLRenderingAPI) sharegroup:(nonnull EAGLSharegroup *)]
+	//_context = [[EAGLContext alloc] initWithAPI:(EAGLRenderingAPI) sharegroup:(nonnull EAGLSharegroup *)] 共享上下文
 	_context = [[EAGLContext alloc] initWithAPI:api];
 	if (!_context)
 	{
@@ -139,22 +150,24 @@
 		[self _setupContext];
 	}
 	[self _setupLayer];
-	
+
 	[self _notifyResizeDrawable];
-	
-	
+
+
 	// MyGLView内部通过CALink驱动渲染
 	UIWindow* window = self.window;
 	UIScreen* screen = window.screen;
 	_displayLink = [screen displayLinkWithTarget:self selector:@selector(_notifyDrawFrame)];
 	_displayLink.paused = false ;
 	_displayLink.preferredFramesPerSecond = 60;
-	
-	
+
+
 	_continueRunLoop = YES;
 	_renderThread = [[NSThread alloc]initWithTarget:self selector:@selector(renderThreadLoop) object:nil];
 	[_renderThread start];
 	// TODO stop thread
+	
+	
 	
 	NSLog(@"[MyGLView][didMoveToWindow] end   ------");
 	
@@ -269,19 +282,25 @@
 			NSLog(@"set current context to GLES 3.0 fail");
 			return ;
 		}
-		
+
 		glBindFramebuffer(GL_FRAMEBUFFER, _frameBuffer);
-		
 		glViewport(0, 0, (GLsizei)_rboSize.width, (GLsizei)_rboSize.height);
 		glClearColor(0.0, 1.0, 1.0, 1.0);
 		glClear(GL_COLOR_BUFFER_BIT);
-		
-		
 
-		// [self.delegate glkView:self drawInRect:_drawRect];// rect
+
+		if ([_texturePool count] != 0)
+		{
+			_textureOrder = ++_textureOrder % [_texturePool count];
+			NSNumber* texId = [_texturePool objectAtIndex:_textureOrder];
+			GLuint _id = [texId unsignedIntValue];
+			[self->_delegate setTextureForTest:_id]; // 注释这里 就不会用纹理池中的纹理 
+		}
 		
+		[self->_delegate glkView:self drawInRect:_drawRect];// rect包含了fbo尺寸的变化
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		
+
 		glBindRenderbuffer(GL_RENDERBUFFER, _colorRenderBuffer); // 必选先bind rbo才能把这个rbo显示出来
 		[_context presentRenderbuffer:GL_RENDERBUFFER];
 		glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -362,6 +381,85 @@
 		_depthRenderBuffer = 0;
 	}
 	
+}
+
+
+-(void) generateTexture
+{
+	@synchronized (_eaglLayer)
+	{
+		if (![EAGLContext setCurrentContext:_context]) // EGL::makeCurrent
+		{
+			_context = nil;
+			NSLog(@"set current context to GLES 3.0 fail");
+			return ;
+		}
+		
+		GLuint texId;
+		glGenTextures(1, &texId);
+		glBindTexture(GL_TEXTURE_2D, texId);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		
+		int* pixelBytes = (int*)malloc(_rboSize.width * 4 * _rboSize.height);
+		
+		for (int i = 0 ; i < _rboSize.width * _rboSize.height; i++)
+		{
+			pixelBytes[i] = 0xFF00FF77; // A B G R
+		}
+		// GL_RGBA 的意思是 从 低地址到高地址是 R G  B A 的顺序
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _rboSize.width, _rboSize.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelBytes);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _rboSize.width, _rboSize.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		
+		free(pixelBytes);
+		
+		glBindTexture(GL_TEXTURE_2D, 0);
+		
+		GLenum error = glGetError();
+		if (error != GL_NO_ERROR)
+		{
+			NSLog(@"Fatal error !!");
+		}
+		
+		[_texturePool addObject:[NSNumber numberWithUnsignedInt:texId]];
+		
+		NSLog(@"add texId %u (%lu %lu) in pool size: %lu",
+			  texId,
+			  (unsigned long)_rboSize.width,
+			  (unsigned long)_rboSize.height,
+			  (unsigned long)[_texturePool count] );
+		
+		
+	}
+}
+
+
+-(void) deleteTexture
+{
+	@synchronized (_eaglLayer)
+	{
+		if (![EAGLContext setCurrentContext:_context]) // EGL::makeCurrent
+		{
+			_context = nil;
+			NSLog(@"set current context to GLES 3.0 fail");
+			return ;
+		}
+	
+		GLuint uTexId = 0 ; // 0 是保留的id 不会分配出来
+		if (_texturePool.count > 0)
+		{
+			NSNumber* texId = [_texturePool firstObject];
+			[_texturePool removeObjectAtIndex:0];
+			uTexId = [texId unsignedIntValue];
+			glDeleteTextures(1, &uTexId);
+		}
+		NSLog(@"rm tex: %u in pool size: %lu", uTexId, (unsigned long)[_texturePool count]);
+		
+	}
 }
 
 
